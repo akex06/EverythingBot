@@ -1,9 +1,10 @@
 import dataclasses
-from io import BytesIO
 
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
+
+from main import Bot
 
 
 @dataclasses.dataclass
@@ -24,7 +25,7 @@ async def game_autocomplete(
            ][:25]
 
 
-async def get_games(bot: commands.Bot) -> list[Game]:
+async def get_games(bot: Bot) -> list[Game]:
     games = list()
     async for page in bot.fix.get_pages("https://online-fix.me/"):
         for article in page.find("div", {"class": "news-container"}).find_all("article", {"class": "news"}):
@@ -36,7 +37,7 @@ async def get_games(bot: commands.Bot) -> list[Game]:
 
 
 class Online(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
         self.update_games.start()
@@ -54,18 +55,14 @@ class Online(commands.Cog):
     @app_commands.autocomplete(url=game_autocomplete)
     async def download(self, ctx: commands.Context, url: str) -> None:
         try:
-            content, name = await self.bot.fix.download_game(f"https://online-fix.me{url}")
+            file = await self.bot.fix.download_game(f"https://online-fix.me{url}")
             await ctx.reply(
                 "Paga el juego zorra",
-                file=discord.File(BytesIO(content), filename=name)
+                file=file
             )
         except TypeError:
             await ctx.reply("Ese juego no tiene un torrent")
 
-    @commands.command()
-    async def reload(self, ctx: commands.Context) -> None:
-        await self.bot.reload_extension("cogs.online")
 
-
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot: Bot) -> None:
     await bot.add_cog(Online(bot))

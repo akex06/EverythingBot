@@ -1,5 +1,7 @@
+from io import BytesIO
 from typing import AsyncGenerator, AsyncIterable
 
+import discord
 import httpx
 from bs4 import BeautifulSoup
 
@@ -75,7 +77,7 @@ class OnlineFix:
         soup = BeautifulSoup(content, "html.parser")
         return soup
 
-    async def download_game(self, url: str) -> tuple[bytes, str]:
+    async def download_game(self, url: str) -> discord.File:
         torrent_url = (await self.get_soup(url)).find("a", string="Скачать Torrent")["href"]
         game_url = (await self.get_soup(torrent_url, headers=OnlineFix.GAME_PAGE_HEADERS)).find_all("a")[-1]["href"]
 
@@ -84,4 +86,5 @@ class OnlineFix:
             headers=OnlineFix.get_game_header(torrent_url)
         )
 
-        return req.content, game_url
+        return discord.File(BytesIO(req.content), filename=game_url)
+
